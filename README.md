@@ -4,7 +4,7 @@ Jellyfin .edl file creation plugin for Kodi and other compatible players. See [K
 
 ## Requirements
 
-- ⚠️ Jellyfin 10.10 unstable
+- ⚠️ Jellyfin 10.10
 - A writeable media library! You can't use this plugin with read only media libraries!
 
 ## Features
@@ -16,7 +16,10 @@ Jellyfin .edl file creation plugin for Kodi and other compatible players. See [K
 
 ## Installation instructions
 
-1. Add plugin repository to your server: `https://raw.githubusercontent.com/endrl/jellyfin-plugin-repo/master/manifest.json`
+1. Add plugin repository to your server:
+```
+https://manifest.intro-skipper.org/manifest.json
+```
 2. Install the EDL Creator plugin from the General section
 3. Restart Jellyfin
 4. Go to Dashboard -> Scheduled Tasks -> Create EDL and click the play button
