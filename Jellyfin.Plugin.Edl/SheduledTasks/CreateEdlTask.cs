@@ -14,29 +14,22 @@ namespace Jellyfin.Plugin.EdlManager;
 /// <summary>
 /// Create edl files task.
 /// </summary>
-public class CreateEdlTask : IScheduledTask
+/// <remarks>
+/// Initializes a new instance of the <see cref="CreateEdlTask"/> class.
+/// </remarks>
+/// <param name="loggerFactory">Logger factory.</param>
+/// <param name="libraryManager">Library manager.</param>
+/// <param name="mediaSegmentManager">MediaSegment manager.</param>
+public class CreateEdlTask(
+    ILoggerFactory loggerFactory,
+    ILibraryManager libraryManager,
+    IMediaSegmentManager mediaSegmentManager) : IScheduledTask
 {
-    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILoggerFactory _loggerFactory = loggerFactory;
 
-    private readonly ILibraryManager _libraryManager;
+    private readonly ILibraryManager _libraryManager = libraryManager;
 
-    private readonly IMediaSegmentManager _mediaSegmentManager;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CreateEdlTask"/> class.
-    /// </summary>
-    /// <param name="loggerFactory">Logger factory.</param>
-    /// <param name="libraryManager">Library manager.</param>
-    /// <param name="mediaSegmentManager">MediaSegment manager.</param>
-    public CreateEdlTask(
-        ILoggerFactory loggerFactory,
-        ILibraryManager libraryManager,
-        IMediaSegmentManager mediaSegmentManager)
-    {
-        _loggerFactory = loggerFactory;
-        _libraryManager = libraryManager;
-        _mediaSegmentManager = mediaSegmentManager;
-    }
+    private readonly IMediaSegmentManager _mediaSegmentManager = mediaSegmentManager;
 
     /// <summary>
     /// Gets the task name.
@@ -89,7 +82,7 @@ public class CreateEdlTask : IScheduledTask
         }
 
         // write edl files
-        baseEdlTask.CreateEdls(progress, segmentsList.AsReadOnly(), false, cancellationToken);
+        baseEdlTask.CreateEdls(progress, segmentsList, false, cancellationToken);
 
         return;
     }
@@ -100,6 +93,6 @@ public class CreateEdlTask : IScheduledTask
     /// <returns>Task triggers.</returns>
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
-        return Array.Empty<TaskTriggerInfo>();
+        return [];
     }
 }

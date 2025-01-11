@@ -1,12 +1,11 @@
-namespace Jellyfin.Plugin.Edl;
-
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Model.MediaSegments;
 using Microsoft.Extensions.Logging;
+
+namespace Jellyfin.Plugin.Edl;
 
 /// <summary>
 /// Update EDL files associated with a list of episodes.
@@ -57,7 +56,7 @@ public static class EdlManager
         var id = psegment.Key;
         var segments = psegment.Value;
 
-        var edlContent = ToEdl(segments.AsReadOnly());
+        var edlContent = ToEdl(segments);
 
         // Test if we generated data
         if (!string.IsNullOrEmpty(edlContent))
@@ -80,8 +79,9 @@ public static class EdlManager
                     {
                         oldContent = File.ReadAllText(edlPath);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        _logger?.LogError(ex, "Error reading EDL file '{File}'", edlPath);
                     }
 
                     // check if we need to update
@@ -113,7 +113,7 @@ public static class EdlManager
     /// </summary>
     /// <param name="segments">The Segments.</param>
     /// <returns>String content of edl file.</returns>
-    public static string ToEdl(ReadOnlyCollection<MediaSegmentDto> segments)
+    public static string ToEdl(IReadOnlyCollection<MediaSegmentDto> segments)
     {
         var fstring = string.Empty;
         foreach (var segment in segments)
@@ -154,23 +154,16 @@ public static class EdlManager
     /// <returns>String content of edl file.</returns>
     private static EdlAction GetActionforType(MediaSegmentType type)
     {
-        switch (type)
+        return type switch
         {
-            case MediaSegmentType.Unknown:
-                return Plugin.Instance!.Configuration.UnknownEdlAction;
-            case MediaSegmentType.Intro:
-                return Plugin.Instance!.Configuration.IntroEdlAction;
-            case MediaSegmentType.Outro:
-                return Plugin.Instance!.Configuration.OutroEdlAction;
-            case MediaSegmentType.Recap:
-                return Plugin.Instance!.Configuration.RecapEdlAction;
-            case MediaSegmentType.Preview:
-                return Plugin.Instance!.Configuration.PreviewEdlAction;
-            case MediaSegmentType.Commercial:
-                return Plugin.Instance!.Configuration.CommercialEdlAction;
-            default:
-                return EdlAction.None;
-        }
+            MediaSegmentType.Unknown => Plugin.Instance!.Configuration.UnknownEdlAction,
+            MediaSegmentType.Intro => Plugin.Instance!.Configuration.IntroEdlAction,
+            MediaSegmentType.Outro => Plugin.Instance!.Configuration.OutroEdlAction,
+            MediaSegmentType.Recap => Plugin.Instance!.Configuration.RecapEdlAction,
+            MediaSegmentType.Preview => Plugin.Instance!.Configuration.PreviewEdlAction,
+            MediaSegmentType.Commercial => Plugin.Instance!.Configuration.CommercialEdlAction,
+            _ => EdlAction.None,
+        };
     }
 
     /// <summary>
