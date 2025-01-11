@@ -16,7 +16,7 @@ namespace Jellyfin.Plugin.Edl;
 /// </summary>
 public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
-    private ILibraryManager _libraryManager;
+    private readonly ILibraryManager _libraryManager;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Plugin"/> class.
@@ -49,21 +49,19 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()
     {
-        return new[]
-        {
+        return
+        [
             new PluginPageInfo
             {
-                Name = this.Name,
+                Name = Name,
                 EmbeddedResourcePath = string.Format(CultureInfo.InvariantCulture, "{0}.Configuration.configPage.html", GetType().Namespace)
             }
-        };
+        ];
     }
 
-    internal BaseItem GetItem(Guid id)
+    internal BaseItem? GetItem(Guid id)
     {
-#pragma warning disable CS8603 // Possible null reference return.
-        return _libraryManager.GetItemById(id);
-#pragma warning restore CS8603 // Possible null reference return.
+        return id != Guid.Empty ? _libraryManager.GetItemById(id) : null;
     }
 
     /// <summary>
@@ -73,6 +71,6 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <returns>Full path to item.</returns>
     internal string GetItemPath(Guid id)
     {
-        return GetItem(id).Path;
+        return GetItem(id)?.Path ?? string.Empty;
     }
 }

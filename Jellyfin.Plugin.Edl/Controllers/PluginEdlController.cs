@@ -84,7 +84,7 @@ public class PluginEdlController : ControllerBase
             }
         }
 
-        var rawstring = EdlManager.ToEdl(segmentsList.AsReadOnly());
+        var rawstring = EdlManager.ToEdl(segmentsList);
 
         var json = new
         {
@@ -126,7 +126,7 @@ public class PluginEdlController : ControllerBase
         CancellationToken cancellationToken = CancellationToken.None;
 
         // write edl files
-        baseEdlTask.CreateEdls(progress, segmentsList.AsReadOnly(), true, cancellationToken);
+        baseEdlTask.CreateEdls(progress, segmentsList, true, cancellationToken);
 
         return new OkResult();
     }

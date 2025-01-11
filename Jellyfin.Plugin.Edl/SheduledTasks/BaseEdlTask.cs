@@ -1,13 +1,12 @@
-namespace Jellyfin.Plugin.Edl;
-
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Model.MediaSegments;
 using Microsoft.Extensions.Logging;
+
+namespace Jellyfin.Plugin.Edl;
 
 /// <summary>
 /// Common code shared by all edl creator tasks.
@@ -37,7 +36,7 @@ public class BaseEdlTask
     /// <param name="cancellationToken">Cancellation token.</param>
     public void CreateEdls(
         IProgress<double> progress,
-        ReadOnlyCollection<MediaSegmentDto> segmentsQueue,
+        IReadOnlyCollection<MediaSegmentDto> segmentsQueue,
         bool forceOverwrite,
         CancellationToken cancellationToken)
     {
@@ -51,7 +50,7 @@ public class BaseEdlTask
             }
             else
             {
-                sortedSegments.Add(segment.ItemId, new List<MediaSegmentDto> { segment });
+                sortedSegments.Add(segment.ItemId, [segment]);
             }
         }
 
@@ -75,7 +74,7 @@ public class BaseEdlTask
             EdlManager.UpdateEDLFile(segment, forceOverwrite);
             Interlocked.Add(ref totalProcessed, 1);
 
-            progress.Report((totalProcessed * 100) / totalQueued);
+            progress.Report(totalProcessed * 100 / totalQueued);
         });
     }
 }
