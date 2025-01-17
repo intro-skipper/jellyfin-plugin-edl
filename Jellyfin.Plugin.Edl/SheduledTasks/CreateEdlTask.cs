@@ -40,7 +40,7 @@ public class CreateEdlTask(
     /// <summary>
     /// Gets the task category.
     /// </summary>
-    public string Category => "Media Analyzer";
+    public string Category => "Intro Skipper";
 
     /// <summary>
     /// Gets the task description.
