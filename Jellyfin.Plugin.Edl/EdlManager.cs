@@ -10,29 +10,16 @@ namespace Jellyfin.Plugin.Edl;
 /// <summary>
 /// Update EDL files associated with a list of episodes.
 /// </summary>
-public static class EdlManager
+/// <param name="logger">Logger.</param>
+public class EdlManager(ILogger<EdlManager> logger) : IEdlManager
 {
-    private static ILogger? _logger;
-
-    /// <summary>
-    /// Initialize EDLManager with a logger.
-    /// </summary>
-    /// <param name="logger">ILogger.</param>
-    public static void Initialize(ILogger logger)
-    {
-        _logger = logger;
-    }
+    private readonly ILogger<EdlManager> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     /// Logs the configuration that will be used during EDL file creation.
     /// </summary>
-    public static void LogConfiguration()
+    public void LogConfiguration()
     {
-        if (_logger is null)
-        {
-            throw new InvalidOperationException("Logger must not be null");
-        }
-
         var config = Plugin.Instance!.Configuration;
 
         _logger.LogDebug("Overwrite EDL files: {Regenerate}", config.OverwriteEdlFiles);
@@ -50,61 +37,48 @@ public static class EdlManager
     /// </summary>
     /// <param name="psegment">Key value pair of segments dictionary.</param>
     /// <param name="forceOverwrite">Force the file overwrite.</param>
-    public static void UpdateEDLFile(KeyValuePair<Guid, List<MediaSegmentDto>> psegment, bool forceOverwrite)
+    public void UpdateEDLFile(KeyValuePair<Guid, List<MediaSegmentDto>> psegment, bool forceOverwrite)
     {
-        var overwrite = Plugin.Instance!.Configuration.OverwriteEdlFiles || forceOverwrite;
         var id = psegment.Key;
         var segments = psegment.Value;
+        var config = Plugin.Instance!.Configuration;
+        var overwrite = config.OverwriteEdlFiles || forceOverwrite;
 
-        var edlContent = ToEdl(segments);
+        _logger.LogInformation("Update EDL file for itemId {ItemId} with {Segments} segments", id, segments.Count);
 
-        // Test if we generated data
-        if (!string.IsNullOrEmpty(edlContent))
+        try
         {
             var filePath = Plugin.Instance!.GetItemPath(id);
-
-            // guard for missing media file/folder.
-            if (File.Exists(filePath))
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
             {
-                var edlPath = GetEdlPath(filePath);
-                var fexists = File.Exists(edlPath);
-
-                // User may not want an override
-                if (!fexists || (fexists && overwrite))
-                {
-                    var oldContent = string.Empty;
-                    var update = false;
-
-                    try
-                    {
-                        oldContent = File.ReadAllText(edlPath);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogError(ex, "Error reading EDL file '{File}'", edlPath);
-                    }
-
-                    // check if we need to update
-                    if (!string.IsNullOrEmpty(oldContent) && oldContent != edlContent)
-                    {
-                        update = true;
-                    }
-
-                    if (!fexists || update)
-                    {
-                        _logger?.LogDebug("{Action} EDL file '{File}'", update ? "Overwrite/Update" : "Create", edlPath);
-                        File.WriteAllText(edlPath, edlContent);
-                    }
-                }
-                else
-                {
-                    _logger?.LogDebug("EDL File exists, but overwrite is disabled: '{File}'", edlPath);
-                }
+                _logger.LogWarning("Skip id ({Id}): unable to get item path or file not found", id);
+                return;
             }
+
+            var edlPath = GetEdlPath(filePath);
+            if (File.Exists(edlPath) && !overwrite)
+            {
+                _logger.LogDebug("EDL file exists, but overwrite is disabled: '{File}'", edlPath);
+                return;
+            }
+
+            var edlContent = ToEdl(segments);
+
+            if (string.IsNullOrEmpty(edlContent))
+            {
+                _logger.LogDebug("Skip id ({Id}): no EDL data generated", id);
+                return;
+            }
+
+            _logger.LogDebug("Writing EDL to {Path}", edlPath);
+
+            File.WriteAllText(edlPath, edlContent);
+            _logger.LogDebug("Successfully created EDL file for {Id} at {Path}", id, edlPath);
         }
-        else
+        catch (Exception ex)
         {
-            _logger?.LogDebug("Skip id ({Id}) no edl data generated", id);
+            _logger.LogError(ex, "Failed to create EDL file for item {Id}", id);
+            throw;
         }
     }
 
@@ -113,12 +87,15 @@ public static class EdlManager
     /// </summary>
     /// <param name="segments">The Segments.</param>
     /// <returns>String content of edl file.</returns>
-    public static string ToEdl(IReadOnlyCollection<MediaSegmentDto> segments)
+    public string ToEdl(IReadOnlyCollection<MediaSegmentDto> segments)
     {
         var fstring = string.Empty;
+        _logger.LogInformation("ToEdl {Segments}", segments);
         foreach (var segment in segments)
         {
             var action = GetActionforType(segment.Type);
+
+            _logger.LogInformation("Action: {Action} for type {Type}", action, segment.Type);
 
             // Skip None actions
             if (action != EdlAction.None)
@@ -129,7 +106,8 @@ public static class EdlManager
 
         // remove last newline
         var newlineInd = fstring.LastIndexOf('\n');
-        return newlineInd > 0 ? fstring.Substring(0, newlineInd) : fstring;
+        _logger.LogInformation("EDL content: {EDLContent}", fstring);
+        return newlineInd > 0 ? fstring[..newlineInd] : fstring;
     }
 
     /// <summary>
@@ -152,17 +130,21 @@ public static class EdlManager
     /// </summary>
     /// <param name="type">The Segments type.</param>
     /// <returns>String content of edl file.</returns>
-    private static EdlAction GetActionforType(MediaSegmentType type)
+    private EdlAction GetActionforType(MediaSegmentType type)
     {
+        var config = Plugin.Instance?.Configuration;
+        ArgumentNullException.ThrowIfNull(config);
+        _logger.LogDebug("GetActionforType called with type: {Type}", type);
+
         return type switch
         {
-            MediaSegmentType.Unknown => Plugin.Instance!.Configuration.UnknownEdlAction,
-            MediaSegmentType.Intro => Plugin.Instance!.Configuration.IntroEdlAction,
-            MediaSegmentType.Outro => Plugin.Instance!.Configuration.OutroEdlAction,
-            MediaSegmentType.Recap => Plugin.Instance!.Configuration.RecapEdlAction,
-            MediaSegmentType.Preview => Plugin.Instance!.Configuration.PreviewEdlAction,
-            MediaSegmentType.Commercial => Plugin.Instance!.Configuration.CommercialEdlAction,
-            _ => EdlAction.None,
+            MediaSegmentType.Unknown => config.UnknownEdlAction,
+            MediaSegmentType.Intro => config.IntroEdlAction,
+            MediaSegmentType.Outro => config.OutroEdlAction,
+            MediaSegmentType.Recap => config.RecapEdlAction,
+            MediaSegmentType.Preview => config.PreviewEdlAction,
+            MediaSegmentType.Commercial => config.CommercialEdlAction,
+            _ => EdlAction.None
         };
     }
 
@@ -171,7 +153,7 @@ public static class EdlManager
     /// </summary>
     /// <param name="mediaPath">Full path to episode.</param>
     /// <returns>Full path to EDL file.</returns>
-    public static string GetEdlPath(string mediaPath)
+    private static string GetEdlPath(string mediaPath)
     {
         return Path.ChangeExtension(mediaPath, "edl");
     }

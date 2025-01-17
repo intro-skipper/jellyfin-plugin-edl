@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Jellyfin.Plugin.Edl.Tests;
@@ -12,6 +13,8 @@ public class TestEdl
     [InlineData(11234568, 56546475, EdlAction.CommercialBreak, "1.123 5.655 3 \n")]
     public void TestEdlSerialization(long start, long end, EdlAction action, string expected)
     {
+        var logger = new LoggerFactory().CreateLogger<EdlManager>();
+        var edlManager = new EdlManager(logger);
         var actual = EdlManager.ToEdlString(start, end, action);
 
         Assert.Equal(expected, actual);

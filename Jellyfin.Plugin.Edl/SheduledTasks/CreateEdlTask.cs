@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Edl;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.MediaSegments;
 using MediaBrowser.Model.Tasks;
-using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.EdlManager;
+namespace Jellyfin.Plugin.Edl.SheduledTasks;
 
 /// <summary>
 /// Create edl files task.
@@ -17,15 +15,18 @@ namespace Jellyfin.Plugin.EdlManager;
 /// <remarks>
 /// Initializes a new instance of the <see cref="CreateEdlTask"/> class.
 /// </remarks>
-/// <param name="loggerFactory">Logger factory.</param>
-/// <param name="libraryManager">Library manager.</param>
-/// <param name="mediaSegmentManager">MediaSegment manager.</param>
+/// <param name="libraryManager">LibraryManager.</param>
+/// <param name="mediaSegmentManager">MediaSegmentManager.</param>
+/// <param name="edlManager">EdlManager.</param>
+/// <param name="queueManager">QueueManager.</param>
 public class CreateEdlTask(
-    ILoggerFactory loggerFactory,
     ILibraryManager libraryManager,
-    IMediaSegmentManager mediaSegmentManager) : IScheduledTask
+    IMediaSegmentManager mediaSegmentManager,
+    IEdlManager edlManager,
+    IQueueManager queueManager) : IScheduledTask
 {
-    private readonly ILoggerFactory _loggerFactory = loggerFactory;
+    private readonly IEdlManager _edlManager = edlManager;
+    private readonly IQueueManager _queueManager = queueManager;
 
     private readonly ILibraryManager _libraryManager = libraryManager;
 
@@ -64,14 +65,11 @@ public class CreateEdlTask(
             throw new InvalidOperationException("Library manager was null");
         }
 
-        var baseEdlTask = new BaseEdlTask(
-            _loggerFactory.CreateLogger<CreateEdlTask>());
-
-        var queueManager = new QueueManager(_loggerFactory.CreateLogger<QueueManager>(), _libraryManager);
+        var baseEdlTask = new BaseEdlTask(_edlManager);
 
         var segmentsList = new List<MediaSegmentDto>();
         // get ItemIds
-        var mediaItems = queueManager.GetMediaItems();
+        var mediaItems = _queueManager.GetMediaItems();
         // get MediaSegments from itemIds
         foreach (var kvp in mediaItems)
         {
@@ -82,7 +80,10 @@ public class CreateEdlTask(
         }
 
         // write edl files
-        baseEdlTask.CreateEdls(progress, segmentsList, false, cancellationToken);
+        if (segmentsList.Count > 0)
+        {
+            baseEdlTask.CreateEdls(progress, segmentsList, false, cancellationToken);
+        }
 
         return;
     }

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Edl.Data;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -21,7 +22,7 @@ namespace Jellyfin.Plugin.Edl;
 /// </remarks>
 /// <param name="logger">Logger.</param>
 /// <param name="libraryManager">Library manager.</param>
-public class QueueManager(ILogger<QueueManager> logger, ILibraryManager libraryManager)
+public class QueueManager(ILogger<QueueManager> logger, ILibraryManager libraryManager) : IQueueManager
 {
     private readonly ILibraryManager _libraryManager = libraryManager;
     private readonly ILogger<QueueManager> _logger = logger;
@@ -73,8 +74,6 @@ public class QueueManager(ILogger<QueueManager> logger, ILibraryManager libraryM
     /// <returns>Queued media items.</returns>
     public IReadOnlyDictionary<Guid, List<QueuedMedia>> GetMediaItemsById(Guid[] itemIds)
     {
-        ArgumentNullException.ThrowIfNull(itemIds);
-
         foreach (var item in itemIds)
         {
             var bitem = _libraryManager.GetItemById(item);
@@ -268,7 +267,7 @@ public class QueueManager(ILogger<QueueManager> logger, ILibraryManager libraryM
         }
 
         // Allocate a new list for each new season
-        _queuedMedia.TryAdd(episode.SeasonId, []);
+        _queuedMedia.TryAdd(episode.SeasonId, new List<QueuedMedia>());
 
         _queuedMedia[episode.SeasonId].Add(new QueuedMedia()
         {

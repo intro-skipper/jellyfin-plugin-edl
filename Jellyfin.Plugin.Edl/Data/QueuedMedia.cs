@@ -1,6 +1,6 @@
 using System;
 
-namespace Jellyfin.Plugin.Edl;
+namespace Jellyfin.Plugin.Edl.Data;
 
 /// <summary>
 /// Media queued for analysis.

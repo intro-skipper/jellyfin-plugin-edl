@@ -4,28 +4,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Model.MediaSegments;
-using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.Edl;
+namespace Jellyfin.Plugin.Edl.SheduledTasks;
 
 /// <summary>
 /// Common code shared by all edl creator tasks.
 /// </summary>
-public class BaseEdlTask
+public class BaseEdlTask(IEdlManager edlManager)
 {
-    private readonly ILogger _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BaseEdlTask"/> class.
-    /// </summary>
-    /// <param name="logger">Task logger.</param>
-    public BaseEdlTask(
-        ILogger logger)
-    {
-        _logger = logger;
-
-        EdlManager.Initialize(_logger);
-    }
+    private readonly IEdlManager _edlManager = edlManager;
 
     /// <summary>
     /// Create edls for all Segments on the server.
@@ -40,23 +27,15 @@ public class BaseEdlTask
         bool forceOverwrite,
         CancellationToken cancellationToken)
     {
-        var sortedSegments = new Dictionary<Guid, List<MediaSegmentDto>>();
-
-        foreach (var segment in segmentsQueue)
-        {
-            if (sortedSegments.TryGetValue(segment.ItemId, out List<MediaSegmentDto>? list))
-            {
-                sortedSegments[segment.ItemId] = list.Append(segment).ToList();
-            }
-            else
-            {
-                sortedSegments.Add(segment.ItemId, [segment]);
-            }
-        }
+        var sortedSegments = segmentsQueue
+            .GroupBy(s => s.ItemId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(s => s.StartTicks).ToList());
 
         var totalQueued = sortedSegments.Count;
 
-        EdlManager.LogConfiguration();
+        _edlManager.LogConfiguration();
 
         var totalProcessed = 0;
         var options = new ParallelOptions()
@@ -66,12 +45,9 @@ public class BaseEdlTask
 
         Parallel.ForEach(sortedSegments, options, (segment) =>
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
+            cancellationToken.ThrowIfCancellationRequested();
 
-            EdlManager.UpdateEDLFile(segment, forceOverwrite);
+            _edlManager.UpdateEDLFile(segment, forceOverwrite);
             Interlocked.Add(ref totalProcessed, 1);
 
             progress.Report(totalProcessed * 100 / totalQueued);
