@@ -44,7 +44,7 @@ public class EdlManager(ILogger<EdlManager> logger) : IEdlManager
         var config = Plugin.Instance!.Configuration;
         var overwrite = config.OverwriteEdlFiles || forceOverwrite;
 
-        _logger.LogInformation("Update EDL file for itemId {ItemId} with {Segments} segments", id, segments.Count);
+        _logger.LogDebug("Update EDL file for itemId {ItemId} with {Segments} segments", id, segments.Count);
 
         try
         {
@@ -90,12 +90,9 @@ public class EdlManager(ILogger<EdlManager> logger) : IEdlManager
     public string ToEdl(IReadOnlyCollection<MediaSegmentDto> segments)
     {
         var fstring = string.Empty;
-        _logger.LogInformation("ToEdl {Segments}", segments);
         foreach (var segment in segments)
         {
             var action = GetActionforType(segment.Type);
-
-            _logger.LogInformation("Action: {Action} for type {Type}", action, segment.Type);
 
             // Skip None actions
             if (action != EdlAction.None)
@@ -106,7 +103,6 @@ public class EdlManager(ILogger<EdlManager> logger) : IEdlManager
 
         // remove last newline
         var newlineInd = fstring.LastIndexOf('\n');
-        _logger.LogInformation("EDL content: {EDLContent}", fstring);
         return newlineInd > 0 ? fstring[..newlineInd] : fstring;
     }
 
