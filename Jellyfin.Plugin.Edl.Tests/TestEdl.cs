@@ -1,3 +1,5 @@
+using Jellyfin.Plugin.Edl.Data;
+using Jellyfin.Plugin.Edl.Managers;
 using Microsoft.Extensions.Logging;
 using Xunit;
 

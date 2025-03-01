@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Edl.Managers;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Plugins;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,5 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
         serviceCollection.AddSingleton<IEdlManager, EdlManager>();
-        serviceCollection.AddSingleton<IQueueManager, QueueManager>();
     }
 }

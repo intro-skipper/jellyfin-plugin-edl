@@ -12,7 +12,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Dto;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.Edl;
+namespace Jellyfin.Plugin.Edl.Managers;
 
 /// <summary>
 /// Manages enqueuing library items for analysis.
@@ -22,7 +22,7 @@ namespace Jellyfin.Plugin.Edl;
 /// </remarks>
 /// <param name="logger">Logger.</param>
 /// <param name="libraryManager">Library manager.</param>
-public class QueueManager(ILogger<QueueManager> logger, ILibraryManager libraryManager) : IQueueManager
+public class QueueManager(ILogger<QueueManager> logger, ILibraryManager libraryManager)
 {
     private readonly ILibraryManager _libraryManager = libraryManager;
     private readonly ILogger<QueueManager> _logger = logger;

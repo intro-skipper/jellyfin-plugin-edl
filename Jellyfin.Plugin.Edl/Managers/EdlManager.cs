@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Edl.Data;
 using MediaBrowser.Model.MediaSegments;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.Edl;
+namespace Jellyfin.Plugin.Edl.Managers;
 
 /// <summary>
 /// Update EDL files associated with a list of episodes.
@@ -89,6 +90,8 @@ public class EdlManager(ILogger<EdlManager> logger) : IEdlManager
     /// <returns>String content of edl file.</returns>
     public string ToEdl(IReadOnlyCollection<MediaSegmentDto> segments)
     {
+        ArgumentNullException.ThrowIfNull(segments);
+
         var fstring = string.Empty;
         foreach (var segment in segments)
         {
@@ -149,8 +152,5 @@ public class EdlManager(ILogger<EdlManager> logger) : IEdlManager
     /// </summary>
     /// <param name="mediaPath">Full path to episode.</param>
     /// <returns>Full path to EDL file.</returns>
-    private static string GetEdlPath(string mediaPath)
-    {
-        return Path.ChangeExtension(mediaPath, "edl");
-    }
+    private static string GetEdlPath(string mediaPath) => Path.ChangeExtension(mediaPath, "edl");
 }

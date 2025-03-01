@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using MediaBrowser.Model.MediaSegments;
 
-namespace Jellyfin.Plugin.Edl;
+namespace Jellyfin.Plugin.Edl.Managers;
 
 /// <summary>
 /// Interface for EDL management operations.

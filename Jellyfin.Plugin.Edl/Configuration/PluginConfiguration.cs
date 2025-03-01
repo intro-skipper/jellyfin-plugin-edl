@@ -1,3 +1,4 @@
+using Jellyfin.Plugin.Edl.Data;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.Edl.Configuration;

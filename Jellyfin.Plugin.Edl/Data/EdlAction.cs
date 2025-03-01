@@ -1,4 +1,4 @@
-namespace Jellyfin.Plugin.Edl;
+namespace Jellyfin.Plugin.Edl.Data;
 
 /// <summary>
 /// Taken from https://kodi.wiki/view/Edit_decision_list#MPlayer_EDL.

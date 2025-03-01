@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Edl.Managers;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.MediaSegments;
 using MediaBrowser.Model.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Edl.SheduledTasks;
 
@@ -15,18 +17,18 @@ namespace Jellyfin.Plugin.Edl.SheduledTasks;
 /// <remarks>
 /// Initializes a new instance of the <see cref="CreateEdlTask"/> class.
 /// </remarks>
+/// <param name="loggerFactory">Logger factory.</param>
 /// <param name="libraryManager">LibraryManager.</param>
 /// <param name="mediaSegmentManager">MediaSegmentManager.</param>
 /// <param name="edlManager">EdlManager.</param>
-/// <param name="queueManager">QueueManager.</param>
 public class CreateEdlTask(
+    ILoggerFactory loggerFactory,
     ILibraryManager libraryManager,
     IMediaSegmentManager mediaSegmentManager,
-    IEdlManager edlManager,
-    IQueueManager queueManager) : IScheduledTask
+    IEdlManager edlManager) : IScheduledTask
 {
+    private readonly ILoggerFactory _loggerFactory = loggerFactory;
     private readonly IEdlManager _edlManager = edlManager;
-    private readonly IQueueManager _queueManager = queueManager;
 
     private readonly ILibraryManager _libraryManager = libraryManager;
 
@@ -69,7 +71,7 @@ public class CreateEdlTask(
 
         var segmentsList = new List<MediaSegmentDto>();
         // get ItemIds
-        var mediaItems = _queueManager.GetMediaItems();
+        var mediaItems = new QueueManager(_loggerFactory.CreateLogger<QueueManager>(), _libraryManager).GetMediaItems();
         // get MediaSegments from itemIds
         foreach (var kvp in mediaItems)
         {
@@ -92,8 +94,5 @@ public class CreateEdlTask(
     /// Get task triggers.
     /// </summary>
     /// <returns>Task triggers.</returns>
-    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
-    {
-        return [];
-    }
+    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => [];
 }
