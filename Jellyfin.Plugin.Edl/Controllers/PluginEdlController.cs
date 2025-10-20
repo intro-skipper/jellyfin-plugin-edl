@@ -6,8 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Edl.Managers;
 using Jellyfin.Plugin.Edl.SheduledTasks;
-using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.MediaSegments;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.MediaSegments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -75,7 +76,13 @@ public class PluginEdlController(
         {
             foreach (var media in kvp.Value)
             {
-                segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(media.ItemId, null, true).ConfigureAwait(false));
+                var item = Plugin.Instance!.GetItem(media.ItemId);
+                if (item is null)
+                {
+                    continue;
+                }
+
+                segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(item, null, new LibraryOptions()).ConfigureAwait(false));
             }
         }
 
@@ -110,7 +117,13 @@ public class PluginEdlController(
         {
             foreach (var media in kvp.Value)
             {
-                segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(media.ItemId, null, true).ConfigureAwait(false));
+                var item = Plugin.Instance!.GetItem(media.ItemId);
+                if (item is null)
+                {
+                    continue;
+                }
+
+                segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(item, null, new LibraryOptions()).ConfigureAwait(false));
             }
         }
 
