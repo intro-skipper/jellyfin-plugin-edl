@@ -6,13 +6,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Edl.Managers;
 using Jellyfin.Plugin.Edl.SheduledTasks;
-using MediaBrowser.Controller;
-using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.MediaSegments;
+using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.MediaSegments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Edl.Controllers;
 
@@ -22,8 +21,6 @@ namespace Jellyfin.Plugin.Edl.Controllers;
 /// <remarks>
 /// Initializes a new instance of the <see cref="PluginEdlController"/> class.
 /// </remarks>
-/// <param name="loggerFactory">Logger factory.</param>
-/// <param name="libraryManager">Library manager.</param>
 /// <param name="mediaSegmentManager">MediaSegmentManager.</param>
 /// <param name="edlManager">EdlManager.</param>
 [Authorize(Policy = "RequiresElevation")]
@@ -31,13 +28,9 @@ namespace Jellyfin.Plugin.Edl.Controllers;
 [Produces(MediaTypeNames.Application.Json)]
 [Route("PluginEdl")]
 public class PluginEdlController(
-    ILoggerFactory loggerFactory,
-    ILibraryManager libraryManager,
     IMediaSegmentManager mediaSegmentManager,
     IEdlManager edlManager) : ControllerBase
 {
-    private readonly ILoggerFactory _loggerFactory = loggerFactory;
-    private readonly ILibraryManager _libraryManager = libraryManager;
     private readonly IMediaSegmentManager _mediaSegmentManager = mediaSegmentManager;
     private readonly IEdlManager _edlManager = edlManager;
 
@@ -68,16 +61,9 @@ public class PluginEdlController(
         [FromRoute, Required] Guid itemId)
     {
         var segmentsList = new List<MediaSegmentDto>();
-        // get ItemIds
-        var mediaItems = new QueueManager(_loggerFactory.CreateLogger<QueueManager>(), _libraryManager).GetMediaItemsById([itemId]);
-        // get MediaSegments from itemIds
-        foreach (var kvp in mediaItems)
-        {
-            foreach (var media in kvp.Value)
-            {
-                segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(media.ItemId, null, true).ConfigureAwait(false));
-            }
-        }
+
+        var item = Plugin.Instance!.GetItem(itemId) ?? throw new ArgumentNullException(nameof(itemId), "Item not found");
+        segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(item, null, new LibraryOptions()).ConfigureAwait(false));
 
         var rawstring = _edlManager.ToEdl(segmentsList);
 
@@ -100,18 +86,24 @@ public class PluginEdlController(
     public async Task<OkResult> GenerateData(
         [FromBody, Required] Guid[] itemIds)
     {
+        if (itemIds is null || itemIds.Length == 0)
+        {
+            throw new ArgumentNullException(nameof(itemIds));
+        }
+
         var baseEdlTask = new BaseEdlTask(_edlManager);
 
         var segmentsList = new List<MediaSegmentDto>();
-        // get ItemIds
-        var mediaItems = new QueueManager(_loggerFactory.CreateLogger<QueueManager>(), _libraryManager).GetMediaItemsById(itemIds);
-        // get MediaSegments from itemIds
-        foreach (var kvp in mediaItems)
+
+        foreach (var id in itemIds)
         {
-            foreach (var media in kvp.Value)
+            var item = Plugin.Instance!.GetItem(id);
+            if (item is null)
             {
-                segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(media.ItemId, null, true).ConfigureAwait(false));
+                continue;
             }
+
+            segmentsList.AddRange(await _mediaSegmentManager.GetSegmentsAsync(item, null, new LibraryOptions()).ConfigureAwait(false));
         }
 
         IProgress<double> progress = new Progress<double>();

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.Edl.Data;
 using MediaBrowser.Model.MediaSegments;
 using Microsoft.Extensions.Logging;
